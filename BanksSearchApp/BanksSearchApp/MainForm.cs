@@ -19,6 +19,8 @@ namespace BanksSearchApp
     {
         GMapControl gMapControl1;
         GMap.NET.WindowsForms.GMapOverlay markersOverlay;
+        BanksContext bc;
+       // public delegate void MaxValueUSD(double maxShell);
 
         public class Bank
         {
@@ -28,6 +30,7 @@ namespace BanksSearchApp
             public int id;
         }
 
+        List<Bank> banks;        
 
         public MainForm()
         {
@@ -38,8 +41,8 @@ namespace BanksSearchApp
         void MainForm_Load(object sender, EventArgs e)
         {
             SetParamsMap();
-        }           
-
+        }
+        
         // ПРИМЕР РАБОТЫ С КАРТОЙ ! 
         // (данный код используйте по своему усмотрению!)
         void SetParamsMap()
@@ -49,9 +52,10 @@ namespace BanksSearchApp
             // Растягивание элемента на все окно!
             gMapControl1.Dock = DockStyle.Fill;
             // Добавление элемента 
-           this.Controls.Add(gMapControl1);
+            //this.Controls.Add(gMapControl1);
+            this.splitContainer1.Panel2.Controls.Add(gMapControl1);
 
-// ОБЩИЕ НАСТРОЙКИ КАРТЫ 
+            // ОБЩИЕ НАСТРОЙКИ КАРТЫ 
             //Указываем, что будем использовать карты OpenStreetMap.
             gMapControl1.MapProvider = GMap.NET.MapProviders.GMapProviders.OpenStreetMap;
             // Указываем источник данных карты (выбран: интренети или локальный кэш)
@@ -129,9 +133,11 @@ namespace BanksSearchApp
 
             // СОБЯТИЯ ПО КАРТЕ !
             gMapControl1.MouseClick += gMapControl1_MouseClick;
-            using (BanksContext bc = new BanksContext())
+            // using (bc = new BanksContext())
+            banks = new List<Bank>();
+            bc = new BanksContext();
             {              
-                List<Bank>banks=new List<Bank>();
+                
                 Random rand = new Random();
                 for(int i=0; i<=21;i++)
                 {
@@ -159,13 +165,7 @@ namespace BanksSearchApp
                     banks[row.Id].text += "RUR: " + row.Id.ToString() + row.Sell.ToString() + "/" + row.Buy.ToString() + " ";
                 }
                 //вставить циклы по евро и рублям
-                foreach (var bank in banks)
-                {
-                    MarkerRed(bank.text, bank.x, bank.y);
-                }
-
-                double maxSell = bc.BankDBUSD.Max(p => p.Sell);
-                var record = bc.BankDBUSD.Where(p => p.Sell == maxSell).First();
+                AddBanksOwerl();
             }
             ////Добавляем в компонент, список маркеров.
             gMapControl1.Overlays.Add(markersOverlay);
@@ -201,6 +201,43 @@ namespace BanksSearchApp
            markersOverlay.Markers.Add(markerG);
            gMapControl1.Overlays.Add(markersOverlay);
         }
-       
+
+        void OutputValue(BankDBUSD record)
+        {
+            markersOverlay.Markers.Clear();
+            var bank = banks[record.Id];
+            MarkerRed(bank.text, bank.x, bank.y);
+            gMapControl1.Invalidate();
+        }
+
+        private void MaxCourseValue_CheckedChanged(object sender, EventArgs e)
+        {
+            
+            double maxSell = bc.BankDBUSD.Max(p => p.Sell);
+            var record = bc.BankDBUSD.Where(p => p.Sell == maxSell).First();
+            OutputValue(record);
+        }
+
+        private void MinCourseValue_CheckedChanged(object sender, EventArgs e)
+        {
+            double minSell = bc.BankDBUSD.Min(p => p.Sell);
+            var record = bc.BankDBUSD.Where(p => p.Sell == minSell).First();
+            OutputValue(record);
+        }
+
+        private void ShowAllCourses_CheckedChanged(object sender, EventArgs e)
+        {
+            AddBanksOwerl();
+            gMapControl1.Invalidate();
+        }
+
+        void AddBanksOwerl()
+        {
+            markersOverlay.Markers.Clear();
+            foreach (var bank in banks)
+            {
+                MarkerRed(bank.text, bank.x, bank.y);
+            }
+        }
     }
 }
